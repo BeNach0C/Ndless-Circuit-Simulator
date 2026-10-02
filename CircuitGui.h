@@ -121,6 +121,8 @@ private:
     uint16_t prevTouchY;
     bool wasTouching;
     bool prevClickState;
+    bool prevDelPressed;
+    bool prevEscPressed;
 
     void handleInputs();
     void handleKey(SDLKey key);

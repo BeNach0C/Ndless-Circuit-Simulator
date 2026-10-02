@@ -21,7 +21,8 @@ CircuitGui::CircuitGui()
       globalOmega(377.0), isPhasorMode(false), isScopeOpen(false), isEditingOmega(false),
       scopeHead(0),
       isEditingValue(false), editingComponent(nullptr), editBufferLen(0),
-      prevTouchX(0), prevTouchY(0), wasTouching(false), prevClickState(false) {
+      prevTouchX(0), prevTouchY(0), wasTouching(false), prevClickState(false),
+      prevDelPressed(false), prevEscPressed(false) {
     editBuffer[0] = '\0';
     for (int i = 0; i < SCOPE_HISTORY; ++i) {
         scopeA[i] = 0.0;
@@ -1313,8 +1314,19 @@ void CircuitGui::handleKey(SDLKey key) {
         startEditingOmega();
         break;
     case SDLK_DELETE:
-        activeTool = TOOL_DELETE;
-        anchorDotCol = -1; anchorDotRow = -1;
+    case SDLK_BACKSPACE:
+        if (hoveredComponent) {
+            auto it = std::find(components.begin(), components.end(), hoveredComponent);
+            if (it != components.end()) {
+                delete *it;
+                components.erase(it);
+                hoveredComponent = nullptr;
+                topologyChanged = true;
+            }
+        } else {
+            activeTool = TOOL_DELETE;
+            anchorDotCol = -1; anchorDotRow = -1;
+        }
         break;
     case SDLK_e:
         if (hoveredComponent) {
@@ -1350,8 +1362,9 @@ void CircuitGui::handleInputs() {
         if (wasTouching) {
             int dx = (int)report.x - (int)prevTouchX;
             int dy = (int)report.y - (int)prevTouchY;
-            cursorX += (double)dx * 0.35;
-            cursorY -= (double)dy * 0.35;
+            // Halved sensitivity as requested
+            cursorX += (double)dx * 0.175;
+            cursorY -= (double)dy * 0.175;
         }
         prevTouchX = report.x;
         prevTouchY = report.y;
@@ -1360,9 +1373,10 @@ void CircuitGui::handleInputs() {
         wasTouching = false;
     }
 
-    double cursorSpeed = 3.0;
+    // Halved arrow key speed
+    double cursorSpeed = 1.5;
     if (isKeyPressed(KEY_NSPIRE_SHIFT)) {
-        cursorSpeed = 7.0;
+        cursorSpeed = 3.5;
     }
 
     if (isKeyPressed(KEY_NSPIRE_LEFT))  cursorX -= cursorSpeed;
@@ -1383,8 +1397,9 @@ void CircuitGui::handleInputs() {
     }
     prevClickState = currentClickState;
 
-    // Delete hovered component directly with calculator DEL key
-    if (isKeyPressed(KEY_NSPIRE_DEL)) {
+    // Delete hovered component directly with calculator DEL key (edge-triggered, no while loop)
+    bool currentDel = isKeyPressed(KEY_NSPIRE_DEL);
+    if (currentDel && !prevDelPressed) {
         if (hoveredComponent) {
             auto it = std::find(components.begin(), components.end(), hoveredComponent);
             if (it != components.end()) {
@@ -1393,24 +1408,27 @@ void CircuitGui::handleInputs() {
                 hoveredComponent = nullptr;
                 topologyChanged = true;
             }
+        } else {
+            activeTool = TOOL_DELETE;
+            anchorDotCol = -1; anchorDotRow = -1;
         }
-        while (isKeyPressed(KEY_NSPIRE_DEL)) SDL_Delay(20);
     }
+    prevDelPressed = currentDel;
 
-    if (isKeyPressed(KEY_NSPIRE_ESC)) {
+    // Escape handling (edge-triggered, no while loop)
+    bool currentEsc = isKeyPressed(KEY_NSPIRE_ESC);
+    if (currentEsc && !prevEscPressed) {
         if (isEditingValue) {
             finishEditingComponent(false);
-            while (isKeyPressed(KEY_NSPIRE_ESC)) SDL_Delay(20);
         } else if (isEditingOmega) {
             finishEditingOmega(false);
-            while (isKeyPressed(KEY_NSPIRE_ESC)) SDL_Delay(20);
         } else if (isScopeOpen) {
             isScopeOpen = false;
-            while (isKeyPressed(KEY_NSPIRE_ESC)) SDL_Delay(20);
         } else {
             quitRequested = true;
         }
     }
+    prevEscPressed = currentEsc;
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
