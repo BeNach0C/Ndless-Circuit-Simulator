@@ -52,7 +52,7 @@ Port of **Naive Circuit Simulator** to the **TI-Nspire CX CAS** calculator runni
 | `I` | Select **Current Source** tool |
 | `Z` | Select **Generic Phasor Impedance ($Z$)** tool |
 | `G` | Select **Ground** tool |
-| `Y` | Macro: Add **Wye ($Y$) 3-Phase Generator** & Load |
+| `Y` | Macro: Add **Wye ($Y$) 3-Phase Generator**|
 | `D` | Macro: Add **Delta ($\Delta$) 3-Phase Generator** |
 | `S` | Toggle **Mini-Oscilloscope** (3-phase live waveforms) |
 | `F` or `PH` | Toggle **Phasor Mode** $\longleftrightarrow$ **Time-Domain Mode** |
